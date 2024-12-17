@@ -66,6 +66,21 @@ fn process_initialize_counter(program_id: &Pubkey, accounts: &[AccountInfo], ini
 }
 
 fn process_increment_counter(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
+    let account_iter = &mut accounts.iter();
+    let counter_account = next_account_info(account_iter)?;
+
+    if counter_account.owner != program_id {
+        return Err(ProgramError::IncorrectProgramId);
+    }
+
+    let mut data = counter_account.data.borrow_mut();
+    let mut counter_data : CounterAccount = CounterAccount::try_from_slice(&data)?;
+
+    counter_data.count = counter_data.count.checked_add(1).ok_or(ProgramError::InvalidAccountData)?;
+    counter_data.serialize(&mut &mut data[..])?;
+
+    msg!("Counter incremented to: {}", counter_data.count);
+
     Ok(())
 }
 
